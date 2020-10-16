@@ -12,16 +12,26 @@ function submitHandler(e) {
   requestLocation(city);
 }
 
-function requestLocation(placeholder) {
+function requestLocation(userCity) {
 
   const ajaxConfig = {
     method: 'get',
     dataType: 'json',
-    data: {city: 'placeholder'} // what we're sending to the server, what the user types in.
+    data: { city: userCity } // what we're sending to the server, this is what the user types in.
   };
 
+  // part of this .ajax call is the ajaxConfig which contains data {city: placeholder} placeholder is what the user enters.
+  // ${API}/location means we are routing this request to ${API}/location
   $.ajax(`${API}/location`, ajaxConfig) // ${API}/location, location is the route
     .then(data => {
       console.log(data);
+      renderLocation(data);
     });
 };
+
+function renderLocation(userLocation) {
+  // mustache templating to append our .ajax API data that was returned.
+  let $template = $('#geocoding-template').html();
+  let html = Mustache.render($template, userLocation);
+  $('#geocode').append(html);
+}

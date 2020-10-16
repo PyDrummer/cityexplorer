@@ -24,12 +24,37 @@ const app = express();
 app.use(cors()); // "just press 'I believe' for this"
 
 //----------------------------------------------------------------------------------------------------------
+
 // Creating a route!!
 // get takes 2 things in, the name of the route '/' and callback
 app.get('/', (request, response) => {
+  response.send('sup'); // the browser is the client in this situation sending a request and gets responded with 'sup'
   //console.log('hello world, this is the home route!');
 });
 
+app.get('/location', (request, response) => {
+  // the ajaxConfig which contains data {userCity: placeholder} lives in the request in the .get method.
+  //console.log(request.query.city); // this will return whatever the user types in the search bar.
+  let city = request.query.city;
+
+  // now we get the data we need from location.json for the response to the app.js (a flat file)
+  let data = require('./data/location.json')[0];
+
+  // build a constructor based off the data we get from './data/location.json'
+  let location = new Location(data, city);
+  response.send(location); // this response gets sent back to app.js and becomes .then(data) in requestLocation
+});
+
+// Now build a constructor to tailor the data.
+
+function Location(obj, query) {
+  this.lat = obj.lat;
+  this.lon = obj.lon;
+  this.search_query = query;
+  this.location = obj.display_name;
+}
+
+//----------------------------------------------------------------------------------------------------------
 
 // Start the server! Which port are we listening on?
 app.listen(PORT, () => {
