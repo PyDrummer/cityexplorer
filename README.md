@@ -1,2 +1,2 @@
-# cityexplorerer
+# cityexplorer
 lab 06
