@@ -32,6 +32,7 @@ app.get('/', (request, response) => {
   //console.log('hello world, this is the home route!');
 });
 
+// using app.get to get the request from app.js
 app.get('/location', (request, response) => {
   // the ajaxConfig which contains data {userCity: placeholder} lives in the request in the .get method.
   //console.log(request.query.city); // this will return whatever the user types in the search bar.
@@ -39,19 +40,49 @@ app.get('/location', (request, response) => {
 
   // now we get the data we need from location.json for the response to the app.js (a flat file)
   let data = require('./data/location.json')[0];
+  //console.log(data);
 
   // build a constructor based off the data we get from './data/location.json'
   let location = new Location(data, city);
+  //console.log(location); wired up
   response.send(location); // this response gets sent back to app.js and becomes .then(data) in requestLocation
+});
+
+// using app.get
+app.get('/weather', (request, response) => {
+  let data = require('./data/weather.json');
+  //console.log(data);
+
+  let weatherArray = [];
+  data.data.forEach(day => {
+
+    //----------------------
+    // turning the date into a string
+    let everyDay = day.valid_date;
+    // console.log(everyDay);
+    let splitDay = everyDay.split('-');
+    let stringDay = new Date(splitDay).toString();
+    // each date is now a string in stringDay
+    //-----------------------
+
+    weatherArray.push(new Weather(stringDay, day));
+  });
+
+  response.send(weatherArray);
 });
 
 // Now build a constructor to tailor the data.
 
 function Location(obj, query) {
-  this.lat = obj.lat;
-  this.lon = obj.lon;
+  this.latitude = obj.lat;
+  this.longitude = obj.lon;
   this.search_query = query;
-  this.location = obj.display_name;
+  this.formatted_query = obj.display_name;
+}
+
+function Weather(date, obj) {
+  this.time = date;
+  this.forecast = obj.weather.description;
 }
 
 //----------------------------------------------------------------------------------------------------------
