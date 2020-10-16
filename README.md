@@ -15,11 +15,20 @@ Javascript, HTML, CSS, Node.JS and Heroku
 <!-- Provide a detailed description of the application design. What technologies (languages, libraries, etc) you're using, and any other relevant design information. -->
 
 ## Change Log
-10-15: begun building the scaffolding.
+10-15: 
+Begun building the scaffolding.
+Added server functionality.
+Deployed on heroku.
+Added app.js functionality for getting user input from the submit and linked the ajax with the json file.
+Added functionality to server.js for getting the request from app.js and getting our data from the json. Created a constructor to tailor the data then pushed it back to app.js
+App.js can now append the tailored data recieved from the server's response.
+Now i'm going to sleep.
+
 <!-- Use this area to document the iterative changes made to your application as each feature is successfully implemented. Use time stamps. Here's an examples:
 
 01-01-2001 4:59pm - Application now has a fully-functional express server, with a GET route for the location resource.
 
 ## Credits and Collaborations
+Worked with Michael Mandell on 10-15-2020
 <!-- Give credit (and a link) to other people or resources that helped you build this application. -->
 -->
