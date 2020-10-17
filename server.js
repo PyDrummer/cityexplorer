@@ -49,27 +49,59 @@ app.get('/location', (request, response) => {
 });
 
 // using app.get
-app.get('/weather', (request, response) => {
-  let data = require('./data/weather.json');
-  //console.log(data);
+app.get('/weather', weatherHandler);
+  // (request, response) => {
+  // // let data = require('./data/weather.json');
+  // //console.log(data);
 
-  let weatherArray = [];
-  data.data.forEach(day => {
+  // let weatherArray = [];
+  // data.data.forEach(day => {
 
-    //----------------------
-    // turning the date into a string
-    let everyDay = day.valid_date;
-    // console.log(everyDay);
-    let splitDay = everyDay.split('-');
-    let stringDay = new Date(splitDay).toDateString();
-    // each date is now a string in stringDay
-    //-----------------------
+  //   //----------------------
+  //   // turning the date into a string
+  //   let everyDay = day.valid_date;
+  //   // console.log(everyDay);
+  //   let splitDay = everyDay.split('-');
+  //   let stringDay = new Date(splitDay).toDateString();
+  //   // each date is now a string in stringDay
+  //   //-----------------------
 
-    weatherArray.push(new Weather(stringDay, day));
-  });
+  //   weatherArray.push(new Weather(stringDay, day));
+  // });
 
-  response.send(weatherArray);
-});
+  // response.send(weatherArray);
+//}
+
+
+
+function weatherHandler(req, res) {
+  try {
+    let data = require('./data/weather.json');
+    //console.log(data);
+
+    let weatherArray = [];
+    data.data.forEach(day => {
+
+      //----------------------
+      // turning the date into a string
+      let everyDay = day.valid_date;
+      // console.log(everyDay);
+      let splitDay = everyDay.split('-');
+      let stringDay = new Date(splitDay).toDateString();
+      // each date is now a string in stringDay
+      //-----------------------
+
+      weatherArray.push(new Weather(stringDay, day));
+    });
+
+    res.send(weatherArray);
+  }
+  // error handler pass in the error
+  catch (error) {
+    console.log('ERROR', error);
+    res.status(500).send('something broke');
+  }
+}
 
 // Now build a constructor to tailor the data.
 
