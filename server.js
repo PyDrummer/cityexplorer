@@ -61,7 +61,7 @@ app.get('/weather', (request, response) => {
     let everyDay = day.valid_date;
     // console.log(everyDay);
     let splitDay = everyDay.split('-');
-    let stringDay = new Date(splitDay).toString();
+    let stringDay = new Date(splitDay).toDateString();
     // each date is now a string in stringDay
     //-----------------------
 
