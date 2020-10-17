@@ -11,15 +11,15 @@
 // bring in the dependancies as variables
 const express = require('express');
 const cors = require('cors'); //cross origin resource sharing
+const superagent = require('superagent');
+const { response } = require('express');
 
 require('dotenv').config(); // used to read a file/environment variables
 
 // Declare our port for our server to listen on
 const PORT = process.env.PORT || 3000; // reads the hidden file .env grabbing the PORT
-
 // Start/instanciate express
 const app = express();
-
 // use CORS
 app.use(cors()); // "just press 'I believe' for this"
 
@@ -32,83 +32,99 @@ app.get('/', (request, response) => {
   //console.log('hello world, this is the home route!');
 });
 
-// using app.get to get the request from app.js
-app.get('/location', (request, response) => {
-  // the ajaxConfig which contains data {userCity: placeholder} lives in the request in the .get method.
-  //console.log(request.query.city); // this will return whatever the user types in the search bar.
-  let city = request.query.city;
+// ----------------------------- Route handlers ----------------------------------
 
-  // now we get the data we need from location.json for the response to the app.js (a flat file)
-  let data = require('./data/location.json')[0];
-  //console.log(data);
-
-  // build a constructor based off the data we get from './data/location.json'
-  let location = new Location(data, city);
-  //console.log(location); wired up
-  response.send(location); // this response gets sent back to app.js and becomes .then(data) in requestLocation
-});
-
-// using app.get
+// switching to using superagent on location route
+app.get('/location', locationHandler);
+// superagent on weather
 app.get('/weather', weatherHandler);
-  // (request, response) => {
-  // // let data = require('./data/weather.json');
-  // //console.log(data);
+// superagent for trails
+app.get('/trails', trailHandler);
+// notFoundHandler function located below the constructors
+app.use('*', notFoundHandler);
 
-  // let weatherArray = [];
-  // data.data.forEach(day => {
+function locationHandler(req, res) {
+  let city = req.query.city;
+  let key = process.env.LOCATIONIQ_API_KEY;
 
-  //   //----------------------
-  //   // turning the date into a string
-  //   let everyDay = day.valid_date;
-  //   // console.log(everyDay);
-  //   let splitDay = everyDay.split('-');
-  //   let stringDay = new Date(splitDay).toDateString();
-  //   // each date is now a string in stringDay
-  //   //-----------------------
+  const URL = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
+  //console.log(URL);
 
-  //   weatherArray.push(new Weather(stringDay, day));
-  // });
-
-  // response.send(weatherArray);
-//}
-
-
+  superagent.get(URL)
+    .then(data => {
+      //console.log(data.body);
+      let location = new Location(city, data.body[0]);
+      res.status(200).json(location);
+    })
+    .catch((error) => {
+      console.log('error', error);
+      res.status(500).send('Your API call did not work for Location?');
+    });
+}
 
 function weatherHandler(req, res) {
-  try {
-    let data = require('./data/weather.json');
-    //console.log(data);
+  let city = req.query.search_query; // now our 'city' is search_query because the constructor changed it.
+  //console.log(`req.query ${req.query.search_query}`);
+  let key = process.env.WEATHERBIT_API_KEY;
 
-    let weatherArray = [];
-    data.data.forEach(day => {
+  const URL = `http://api.weatherbit.io/v2.0/forecast/daily/current?city=${city}&country=United%20States&key=${key}&days=7`;
 
-      //----------------------
-      // turning the date into a string
-      let everyDay = day.valid_date;
-      // console.log(everyDay);
-      let splitDay = everyDay.split('-');
-      let stringDay = new Date(splitDay).toDateString();
-      // each date is now a string in stringDay
-      //-----------------------
+  superagent.get(URL)
+    .then(data => {
+      let weatherArray = data.body.data.map(day => {
+        // .map iterates over an array, changes each item in a way (stringing/constructor/etc). Then returns the changed item.
 
-      weatherArray.push(new Weather(stringDay, day));
+        //----------------------
+        // turning the date into a string
+        let stringDay = new Date(day.ts * 1000).toDateString();
+        // each date is now a string in stringDay
+        //-----------------------
+
+        return new Weather(stringDay, day);
+      });
+      //console.log(weatherArray);
+      res.status(200).json(weatherArray);
+      res.send(weatherArray);
+    })
+    // error handler pass in the error
+    .catch((error) => {
+      console.log('error', error);
+      res.status(500).send('Your API call did not work for weather?');
     });
+}
 
-    res.send(weatherArray);
-  }
-  // error handler pass in the error
-  catch (error) {
-    console.log('ERROR', error);
-    res.status(500).send('something broke');
-  }
+// "the first ten hikes and campgrounds in the area will be displayed in the browser"
+function trailHandler(req, res) {
+  //let city = req.query.search_query;
+  let lat = req.query.latitude;
+  let lon = req.query.longitude;
+  let key = process.env.TRAILS_API_KEY;
+
+  const URL = `https://www.hikingproject.com/data/get-trails?lat=${lat}&lon=${lon}&key=${key}&days=10`;
+
+  superagent.get(URL)
+    .then(data => {
+      //console.log(data.body.trails); WORKS
+      let eachTrail = data.body.trails.map(trail => {
+        let timeDateSplit = trail.conditionDate.split(' ');
+        return new Trails(trail, timeDateSplit);
+      });
+      //console.log(eachTrail);
+      res.status(200).json(eachTrail);
+      res.send(eachTrail);
+    })
+    .catch((error) => {
+      console.log('error', error);
+      res.status(500).send('Your API call did not work for weather?');
+    });
 }
 
 // Now build a constructor to tailor the data.
 
-function Location(obj, query) {
+function Location(query, obj) {
+  this.search_query = query;
   this.latitude = obj.lat;
   this.longitude = obj.lon;
-  this.search_query = query;
   this.formatted_query = obj.display_name;
 }
 
@@ -117,7 +133,26 @@ function Weather(date, obj) {
   this.forecast = obj.weather.description;
 }
 
+function Trails(obj, dateTime) {
+  this.name = obj.name;
+  this.location = obj.location;
+  this.length = obj.length;
+  this.stars = obj.stars;
+  this.star_votes = obj.starVotes;
+  this.summary = obj.summary;
+  this.trail_url = obj.url;
+  this.conditions = obj.conditionStatus;
+  this.condition_date = dateTime[0];
+  this.condition_time = dateTime[1];
+}
+
 //----------------------------------------------------------------------------------------------------------
+
+// not found handler here:
+function notFoundHandler(req, res) {
+  res.status(404).send('Try again.');
+}
+
 
 // Start the server! Which port are we listening on?
 app.listen(PORT, () => {

@@ -32,5 +32,6 @@ Now i'm going to sleep.
 
 ## Credits and Collaborations
 Worked with Michael Mandell on 10-15-2020
+Worked with Louis Caruso
 <!-- Give credit (and a link) to other people or resources that helped you build this application. -->
 -->
