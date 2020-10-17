@@ -38,6 +38,8 @@ app.get('/', (request, response) => {
 app.get('/location', locationHandler);
 // superagent on weather
 app.get('/weather', weatherHandler);
+// superagent for trails
+app.get('/trails', trailHandler);
 // notFoundHandler function located below the constructors
 app.use('*', notFoundHandler);
 
@@ -61,34 +63,56 @@ function locationHandler(req, res) {
 }
 
 function weatherHandler(req, res) {
-  let city = req.query.search_query; // now our 'city' is search_query because of the constructor.
-  console.log(`req.query ${req.query.search_query}`);
+  let city = req.query.search_query; // now our 'city' is search_query because the constructor changed it.
+  //console.log(`req.query ${req.query.search_query}`);
   let key = process.env.WEATHERBIT_API_KEY;
 
   const URL = `http://api.weatherbit.io/v2.0/forecast/daily/current?city=${city}&country=United%20States&key=${key}&days=7`;
 
   superagent.get(URL)
     .then(data => {
-      console.log(data.body);
       let weatherArray = data.body.data.map(day => {
         // .map iterates over an array, changes each item in a way (stringing/constructor/etc). Then returns the changed item.
 
         //----------------------
         // turning the date into a string
-        // let everyDay = day.datetime;
-        // let splitDay = everyDay.split('-');
         let stringDay = new Date(day.ts * 1000).toDateString();
-        console.log(stringDay);
         // each date is now a string in stringDay
         //-----------------------
 
         return new Weather(stringDay, day);
       });
-      console.log(weatherArray);
+      //console.log(weatherArray);
       res.status(200).json(weatherArray);
       res.send(weatherArray);
     })
     // error handler pass in the error
+    .catch((error) => {
+      console.log('error', error);
+      res.status(500).send('Your API call did not work for weather?');
+    });
+}
+
+// "the first ten hikes and campgrounds in the area will be displayed in the browser"
+function trailHandler(req, res) {
+  //let city = req.query.search_query;
+  let lat = req.query.latitude;
+  let lon = req.query.longitude;
+  let key = process.env.TRAILS_API_KEY;
+
+  const URL = `https://www.hikingproject.com/data/get-trails?lat=${lat}&lon=${lon}&key=${key}&days=10`;
+
+  superagent.get(URL)
+    .then(data => {
+      //console.log(data.body.trails); WORKS
+      let eachTrail = data.body.trails.map(trail => {
+        let timeDateSplit = trail.conditionDate.split(' ');
+        return new Trails(trail, timeDateSplit);
+      });
+      //console.log(eachTrail);
+      res.status(200).json(eachTrail);
+      res.send(eachTrail);
+    })
     .catch((error) => {
       console.log('error', error);
       res.status(500).send('Your API call did not work for weather?');
@@ -107,6 +131,19 @@ function Location(query, obj) {
 function Weather(date, obj) {
   this.time = date;
   this.forecast = obj.weather.description;
+}
+
+function Trails(obj, dateTime) {
+  this.name = obj.name;
+  this.location = obj.location;
+  this.length = obj.length;
+  this.stars = obj.stars;
+  this.star_votes = obj.starVotes;
+  this.summary = obj.summary;
+  this.trail_url = obj.url;
+  this.conditions = obj.conditionStatus;
+  this.condition_date = dateTime[0];
+  this.condition_time = dateTime[1];
 }
 
 //----------------------------------------------------------------------------------------------------------
