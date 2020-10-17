@@ -24,6 +24,8 @@ Added functionality to server.js for getting the request from app.js and getting
 App.js can now append the tailored data recieved from the server's response.
 Now i'm going to sleep.
 
+10-17-2020 todo: delete json files, link up the location, weather and trails API keys in .env, refactor some code to use superagent on server.js.
+
 <!-- Use this area to document the iterative changes made to your application as each feature is successfully implemented. Use time stamps. Here's an examples:
 
 01-01-2001 4:59pm - Application now has a fully-functional express server, with a GET route for the location resource.
