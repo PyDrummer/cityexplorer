@@ -104,10 +104,22 @@ function trailHandler(req, res) {
 
   superagent.get(URL)
     .then(data => {
-      //console.log(data.body.trails); WORKS
+      //console.log(data.body.trails); // WORKS
       let eachTrail = data.body.trails.map(trail => {
         let timeDateSplit = trail.conditionDate.split(' ');
-        return new Trails(trail, timeDateSplit);
+        let newTimeDateSplit = [];
+        // If there is no updated information run this:
+        timeDateSplit.forEach(timeDate => {
+          //console.log(`timedate is: ${timeDate}`);
+          if (timeDate === '1970-01-01' || timeDate === '00:00:00') {
+            let notRecoredTimeDate = 'not currently updated';
+            newTimeDateSplit.push(notRecoredTimeDate);
+          } else {
+            newTimeDateSplit.push(timeDate);
+          }
+        });
+        // console.log(newTimeDateSplit);
+        return new Trails(trail, newTimeDateSplit);
       });
       //console.log(eachTrail);
       res.status(200).json(eachTrail);
@@ -115,7 +127,7 @@ function trailHandler(req, res) {
     })
     .catch((error) => {
       console.log('error', error);
-      res.status(500).send('Your API call did not work for weather?');
+      res.status(500).send('Your API call did not work for trail?');
     });
 }
 
@@ -142,7 +154,7 @@ function Trails(obj, dateTime) {
   this.summary = obj.summary;
   this.trail_url = obj.url;
   this.conditions = obj.conditionStatus;
-  this.condition_date = dateTime[0];
+  this.condition_date = new Date(dateTime[0]).toDateString();
   this.condition_time = dateTime[1];
 }
 
