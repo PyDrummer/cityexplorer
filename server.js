@@ -12,6 +12,7 @@
 const express = require('express');
 const cors = require('cors'); //cross origin resource sharing
 const superagent = require('superagent');
+const pg = require('pg'); // postgreSQL
 const { response } = require('express');
 
 require('dotenv').config(); // used to read a file/environment variables
@@ -22,6 +23,9 @@ const PORT = process.env.PORT || 3000; // reads the hidden file .env grabbing th
 const app = express();
 // use CORS
 app.use(cors()); // "just press 'I believe' for this"
+
+// creating our postgres client
+const client = new pg.Client(process.env.DATABASE_URL);
 
 //----------------------------------------------------------------------------------------------------------
 
@@ -40,12 +44,27 @@ app.get('/location', locationHandler);
 app.get('/weather', weatherHandler);
 // superagent for trails
 app.get('/trails', trailHandler);
+
 // notFoundHandler function located below the constructors
 app.use('*', notFoundHandler);
 
 function locationHandler(req, res) {
   let city = req.query.city;
   let key = process.env.LOCATIONIQ_API_KEY;
+
+  // check if the city query is already in the database *** Must build this ***
+  // const sqlCall = `SELECT `
+  // client.query to check my database:
+  // client.query(sqlCall)
+  //       .then(results => {
+  //          if (results.rowCount){
+  //          return results.row[i]
+  //        })else {
+  //          superagent stuff here
+  //               .then() {
+  //              }
+  //         console.log(results.rows);
+  //       })
 
   const URL = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
   //console.log(URL);
@@ -54,6 +73,23 @@ function locationHandler(req, res) {
     .then(data => {
       //console.log(data.body);
       let location = new Location(city, data.body[0]);
+      // Sending these to the database
+      let city_query = location.search_query;
+      let lat = location.latitude;
+      let lon = location.longitude;
+      // sending stuff to my schema.sql database
+      const SQL = `INSERT INTO city (city, lat, lon) VALUES ($1, $2, $3) RETURNING *`;
+      const safeValue = [city_query, lat, lon];
+
+      client.query(SQL, safeValue)
+        .then(results => {
+          console.log(results.rows);
+        })
+        .catch(error => {
+          console.log('Error', error);
+          res.status(500).send('Something went wrong.');
+        });
+
       res.status(200).json(location);
     })
     .catch((error) => {
@@ -131,6 +167,7 @@ function trailHandler(req, res) {
     });
 }
 
+
 // Now build a constructor to tailor the data.
 
 function Location(query, obj) {
@@ -166,7 +203,18 @@ function notFoundHandler(req, res) {
 }
 
 
-// Start the server! Which port are we listening on?
-app.listen(PORT, () => {
-  console.log(`Server is now listening on port ${PORT}`);
-});
+//Start the server! Which port are we listening on?
+// app.listen(PORT, () => {
+//   console.log(`Server is now listening on port ${PORT}`);
+// });
+
+// client connecting:
+client.connect()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Client now listening on port ${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.log('Error! ', err);
+  });
