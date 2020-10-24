@@ -44,6 +44,8 @@ app.get('/location', locationHandler);
 app.get('/weather', weatherHandler);
 // superagent for trails
 app.get('/trails', trailHandler);
+// superagent for movies
+app.get('/movies', movieHandler);
 // notFoundHandler function located below the constructors
 app.use('*', notFoundHandler);
 
@@ -57,7 +59,6 @@ function locationHandler(req, res) {
   const safeValue = [city];
   client.query(SQL, safeValue)
     .then(results => {
-      console.log(results.rows);
       if (results.rows.length > 0) {
         console.log('database was used!');
         res.status(200).json(results.rows[0]);
@@ -66,14 +67,13 @@ function locationHandler(req, res) {
 
         superagent.get(URL)
           .then(data => {
-            //console.log(data.body);
             let location = new Location(city, data.body[0]);
             // Sending these to the database
             let cityQuery = location.search_query;
             let lat = location.latitude;
             let lon = location.longitude;
             // sending stuff to my schema.sql database
-            const SQL = `INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3) RETURNING *`;
+            const SQL = `INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4) RETURNING *`;
             const safeValue = [cityQuery, cityQuery, lat, lon];
 
             client.query(SQL, safeValue)
@@ -84,7 +84,6 @@ function locationHandler(req, res) {
                 console.log('Error', error);
                 res.status(500).send('Something went wrong.');
               });
-
             res.status(200).json(location);
           })
           .catch((error) => {
@@ -101,7 +100,7 @@ function locationHandler(req, res) {
 
 function weatherHandler(req, res) {
   let city = req.query.search_query; // now our 'city' is search_query because the constructor changed it.
-  console.log(`req.query ${req.query.search_query}`);
+  // console.log(`req.query ${req.query.search_query}`);
   let key = process.env.WEATHERBIT_API_KEY;
 
   const URL = `http://api.weatherbit.io/v2.0/forecast/daily/current?city=${city}&country=United%20States&key=${key}&days=7`;
@@ -121,7 +120,7 @@ function weatherHandler(req, res) {
       });
       //console.log(weatherArray);
       res.status(200).json(weatherArray);
-      res.send(weatherArray);
+      //res.send(weatherArray);
     })
     // error handler pass in the error
     .catch((error) => {
@@ -147,7 +146,6 @@ function trailHandler(req, res) {
         let newTimeDateSplit = [];
         // If there is no updated information run this:
         timeDateSplit.forEach(timeDate => {
-          //console.log(`timedate is: ${timeDate}`);
           if (timeDate === '1970-01-01' || timeDate === '00:00:00') {
             let notRecoredTimeDate = 'not currently updated';
             newTimeDateSplit.push(notRecoredTimeDate);
@@ -155,12 +153,10 @@ function trailHandler(req, res) {
             newTimeDateSplit.push(timeDate);
           }
         });
-        // console.log(newTimeDateSplit);
         return new Trails(trail, newTimeDateSplit);
       });
-      //console.log(eachTrail);
       res.status(200).json(eachTrail);
-      res.send(eachTrail);
+      //res.send(eachTrail);
     })
     .catch((error) => {
       console.log('error', error);
@@ -168,8 +164,43 @@ function trailHandler(req, res) {
     });
 }
 
+// "the top twenty movies set in the area will be displayed in the browser"
+function movieHandler(req, res) {
+  let city = req.query.search_query;
+  let key = process.env.MOVIE_API_KEY;
 
-// Now build a constructor to tailor the data.
+  const URL = `https://api.themoviedb.org/3/search/movie?api_key=${key}&language=en-US&query=${city}&page=1&include_adult=false`;
+
+  superagent.get(URL)
+    .then(data => {
+      console.log(data.body.results[0]); // shows 'Sleepless in Seattle'
+      let eachMovie = data.body.results.map(movies => {
+        console.log('poster path ', movies.poster_path);
+        console.log('backdrop path ', movies.backdrop_path);
+        let imageToUse = '';
+        if (movies.poster_path === null && movies.backdrop_path === null){
+          imageToUse = 'No Picture';
+        }
+        else if (movies.poster_path) {
+          imageToUse = `https://image.tmdb.org/t/p/w500${movies.poster_path}`;
+        }
+        else if (movies.backdrop_path) {
+          imageToUse = `https://image.tmdb.org/t/p/w500${movies.backdrop_path}`;
+        }
+        console.log('image using: ', imageToUse);
+        return new Movies(movies, imageToUse);
+      });
+      res.status(200).json(eachMovie);
+      //res.send(eachMovie);
+    })
+    .catch((error) => {
+      console.log('error', error);
+      res.status(500).send('Your API call did not work for Movies?');
+    });
+}
+
+
+// Now build the constructors to tailor the data.
 
 function Location(query, obj) {
   this.search_query = query;
@@ -194,6 +225,16 @@ function Trails(obj, dateTime) {
   this.conditions = obj.conditionStatus;
   this.condition_date = new Date(dateTime[0]).toDateString();
   this.condition_time = dateTime[1];
+}
+
+function Movies(obj, img) {
+  this.title = obj.title;
+  this.overview = obj.overview;
+  this.average_votes = obj.vote_average;
+  this.total_votes = obj.vote_count;
+  this.popularity = obj.popularity;
+  this.released_on = new Date(obj.release_date).toDateString();
+  this.image_url = img;
 }
 
 //----------------------------------------------------------------------------------------------------------
