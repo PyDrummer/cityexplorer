@@ -1,9 +1,8 @@
-DROP TABLE if exists people;
+DROP TABLE if exists locations;
 
-CREATE TABLE city (
+CREATE TABLE locations (
   id SERIAL PRIMARY KEY,
-  city VARCHAR(255),
-  lat VARCHAR(255),
-  lon VARCHAR(255)
+  search_query VARCHAR(255),
+  latitude VARCHAR(255),
+  longitude VARCHAR(255)
 );
-

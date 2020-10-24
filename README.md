@@ -26,7 +26,9 @@ Now i'm going to sleep.
 
 10-17-2020 todo: delete json files, link up the location, weather and trails API keys in .env, refactor some code to use superagent on server.js.
 
+10-22: Got postgres up and running. Built a SQL database called city_explorer and starting pushing data into it.
 
+10-23: Skyler (the TA) helped us get client.query to run and call from my database. Set up if statement conditionals to compair the searched word against what is in the database. If it is in the database it will use it to show the data. If not it will run an API call. Reformated the schema.sql so it would meet the format of the other API calls.
 
 <!-- Use this area to document the iterative changes made to your application as each feature is successfully implemented. Use time stamps. Here's an examples:
 
@@ -35,5 +37,6 @@ Now i'm going to sleep.
 ## Credits and Collaborations
 Worked with Michael Mandell on 10-15-2020
 Worked with Louis Caruso 10-17-2020
+Worked with Louis Caruso 10-22-2020
 <!-- Give credit (and a link) to other people or resources that helped you build this application. -->
 -->
