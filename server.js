@@ -18,7 +18,7 @@ const { response } = require('express');
 require('dotenv').config(); // used to read a file/environment variables
 
 // Declare our port for our server to listen on
-const PORT = process.env.PORT || 3000; // reads the hidden file .env grabbing the PORT
+const PORT = process.env.PORT || 4000; // reads the hidden file .env grabbing the PORT if you see 4000 something is wrong with .env
 // Start/instanciate express
 const app = express();
 // use CORS
@@ -44,63 +44,64 @@ app.get('/location', locationHandler);
 app.get('/weather', weatherHandler);
 // superagent for trails
 app.get('/trails', trailHandler);
-
 // notFoundHandler function located below the constructors
 app.use('*', notFoundHandler);
+
+
 
 function locationHandler(req, res) {
   let city = req.query.city;
   let key = process.env.LOCATIONIQ_API_KEY;
 
-  // check if the city query is already in the database *** Must build this ***
-  // const sqlCall = `SELECT `
-  // client.query to check my database:
-  // client.query(sqlCall)
-  //       .then(results => {
-  //          if (results.rowCount){
-  //          return results.row[i]
-  //        })else {
-  //          superagent stuff here
-  //               .then() {
-  //              }
-  //         console.log(results.rows);
-  //       })
+  const SQL = `SELECT * FROM locations WHERE search_query=$1`;
+  const safeValue = [city];
+  client.query(SQL, safeValue)
+    .then(results => {
+      console.log(results.rows);
+      if (results.rows.length > 0) {
+        console.log('database was used!');
+        res.status(200).json(results.rows[0]);
+      } else {
+        const URL = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
 
-  const URL = `https://us1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json`;
-  //console.log(URL);
+        superagent.get(URL)
+          .then(data => {
+            //console.log(data.body);
+            let location = new Location(city, data.body[0]);
+            // Sending these to the database
+            let cityQuery = location.search_query;
+            let lat = location.latitude;
+            let lon = location.longitude;
+            // sending stuff to my schema.sql database
+            const SQL = `INSERT INTO locations (search_query, latitude, longitude) VALUES ($1, $2, $3) RETURNING *`;
+            const safeValue = [cityQuery, lat, lon];
 
-  superagent.get(URL)
-    .then(data => {
-      //console.log(data.body);
-      let location = new Location(city, data.body[0]);
-      // Sending these to the database
-      let city_query = location.search_query;
-      let lat = location.latitude;
-      let lon = location.longitude;
-      // sending stuff to my schema.sql database
-      const SQL = `INSERT INTO city (city, lat, lon) VALUES ($1, $2, $3) RETURNING *`;
-      const safeValue = [city_query, lat, lon];
+            client.query(SQL, safeValue)
+              .then(results => {
+                console.log('this is something new in the database', results.rows);
+              })
+              .catch(error => {
+                console.log('Error', error);
+                res.status(500).send('Something went wrong.');
+              });
 
-      client.query(SQL, safeValue)
-        .then(results => {
-          console.log(results.rows);
-        })
-        .catch(error => {
-          console.log('Error', error);
-          res.status(500).send('Something went wrong.');
-        });
-
-      res.status(200).json(location);
+            res.status(200).json(location);
+          })
+          .catch((error) => {
+            console.log('error', error);
+            res.status(500).send('Your API call did not work for Location?');
+          });
+      }
     })
-    .catch((error) => {
-      console.log('error', error);
-      res.status(500).send('Your API call did not work for Location?');
+    .catch(error => {
+      console.log('Error', error);
+      res.status(500).send('Something went wrong.');
     });
 }
 
 function weatherHandler(req, res) {
   let city = req.query.search_query; // now our 'city' is search_query because the constructor changed it.
-  //console.log(`req.query ${req.query.search_query}`);
+  console.log(`req.query ${req.query.search_query}`);
   let key = process.env.WEATHERBIT_API_KEY;
 
   const URL = `http://api.weatherbit.io/v2.0/forecast/daily/current?city=${city}&country=United%20States&key=${key}&days=7`;
@@ -201,7 +202,6 @@ function Trails(obj, dateTime) {
 function notFoundHandler(req, res) {
   res.status(404).send('Try again.');
 }
-
 
 //Start the server! Which port are we listening on?
 // app.listen(PORT, () => {
