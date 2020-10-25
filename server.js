@@ -46,6 +46,8 @@ app.get('/weather', weatherHandler);
 app.get('/trails', trailHandler);
 // superagent for movies
 app.get('/movies', movieHandler);
+// superagent for YELP
+app.get('/yelp', yelpHandler);
 // notFoundHandler function located below the constructors
 app.use('*', notFoundHandler);
 
@@ -173,13 +175,11 @@ function movieHandler(req, res) {
 
   superagent.get(URL)
     .then(data => {
-      console.log(data.body.results[0]); // shows 'Sleepless in Seattle'
+      // console.log(data.body.results[0]); // shows 'Sleepless in Seattle'
       let eachMovie = data.body.results.map(movies => {
-        console.log('poster path ', movies.poster_path);
-        console.log('backdrop path ', movies.backdrop_path);
         let imageToUse = '';
         if (movies.poster_path === null && movies.backdrop_path === null){
-          imageToUse = 'No Picture';
+          imageToUse = 'https://i.imgur.com/GQPN5Q9.jpeg';
         }
         else if (movies.poster_path) {
           imageToUse = `https://image.tmdb.org/t/p/w500${movies.poster_path}`;
@@ -187,9 +187,10 @@ function movieHandler(req, res) {
         else if (movies.backdrop_path) {
           imageToUse = `https://image.tmdb.org/t/p/w500${movies.backdrop_path}`;
         }
-        console.log('image using: ', imageToUse);
+        // console.log('image using: ', imageToUse);
         return new Movies(movies, imageToUse);
       });
+      eachMovie = eachMovie.slice(0, 20);
       res.status(200).json(eachMovie);
       //res.send(eachMovie);
     })
@@ -199,6 +200,29 @@ function movieHandler(req, res) {
     });
 }
 
+function yelpHandler(req, res) {
+  const page = req.query.page || 1;
+  let numPerPage = 5;
+  let city = req.query.search_query;
+  let key = process.env.YELP_API_KEY;
+  const offset = ((page - 1) * numPerPage);
+
+  const URL = `https://api.yelp.com/v3/businesses/search?location=${city}&term=restaurants&limit=5&offset=${offset}`;
+
+  superagent.get(URL)
+    .set('Authorization', `Bearer ${key}`)
+    .then( data => {
+      console.log(data.body.businesses[0]);
+      let eachRestaurant = data.body.businesses.map(food =>{
+        return new Restaurant(food);
+      });
+      res.status(200).json(eachRestaurant);
+    })
+    .catch((error) => {
+      console.log('error', error);
+      res.status(500).send('Your API call did not work for Yelp?');
+    });
+}
 
 // Now build the constructors to tailor the data.
 
@@ -235,6 +259,14 @@ function Movies(obj, img) {
   this.popularity = obj.popularity;
   this.released_on = new Date(obj.release_date).toDateString();
   this.image_url = img;
+}
+
+function Restaurant(obj) {
+  this.name = obj.name;
+  this.image_url = obj.image_url;
+  this.price = obj.price;
+  this.rating = obj.rating;
+  this.url = obj.url;
 }
 
 //----------------------------------------------------------------------------------------------------------
