@@ -72,11 +72,12 @@ function locationHandler(req, res) {
             let location = new Location(city, data.body[0]);
             // Sending these to the database
             let cityQuery = location.search_query;
+            let formattedQuery = location.formatted_query;
             let lat = location.latitude;
             let lon = location.longitude;
             // sending stuff to my schema.sql database
             const SQL = `INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES ($1, $2, $3, $4) RETURNING *`;
-            const safeValue = [cityQuery, cityQuery, lat, lon];
+            const safeValue = [cityQuery, formattedQuery, lat, lon];
 
             client.query(SQL, safeValue)
               .then(results => {
